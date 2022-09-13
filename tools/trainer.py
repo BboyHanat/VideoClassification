@@ -1,0 +1,214 @@
+import os
+import cv2
+import torch
+import random
+import numpy as np
+from torch import nn
+from datetime import datetime
+import torch.distributed as dist
+from prettytable import PrettyTable
+import torch.backends.cudnn as cudnn
+from torch.utils.data import DataLoader
+from torch.nn import SyncBatchNorm, parallel
+from torch.utils.tensorboard import SummaryWriter
+from utils.dist_util import reduce_mean, accuracy, AverageMeter
+
+__all__ = ['dist_trainer']
+
+
+def init_seeds(seed=0, cuda_deterministic=True):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    # Speed-reproducibility tradeoff
+    # https://pytorch.org/docs/stable/notes/randomness.html
+    if cuda_deterministic:  # slower, more reproducible
+        cudnn.deterministic = True
+        cudnn.benchmark = False
+    else:  # faster, less reproducible
+        cudnn.deterministic = False
+        cudnn.benchmark = True
+
+
+def dist_trainer(local_rank, train_cfg: dict):
+    """
+
+    :param local_rank:
+    :param train_cfg: distribute training parameters
+    :return: 
+    """
+    network_model = train_cfg['network_model']
+    train_dataset = train_cfg['train_dataset']
+    val_dataset = train_cfg['val_dataset']
+    loss_func = train_cfg['loss_func']
+    optimizer = train_cfg['optimizer']
+    lr_policy = train_cfg['lr_policy']
+    summary_writer = train_cfg['summary_writer']
+    pretrained = train_cfg['pretrained']
+
+    # set different seed for each worker
+    init_seeds(local_rank + 1, cuda_deterministic=False)
+    init_method = 'tcp://' + train_cfg['ip'] + ':' + str(train_cfg['port'])
+    dist.init_process_group(backend='nccl',  # noqa
+                            init_method=init_method,
+                            world_size=train_cfg['dist_num'],
+                            rank=local_rank)
+
+    network_model = SyncBatchNorm.convert_sync_batchnorm(network_model).to(local_rank)
+    network_model = parallel.DistributedDataParallel(network_model,
+                                                     device_ids=[local_rank])
+    train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+    val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
+
+    train_batch_data = DataLoader(train_dataset,
+                                  batch_size=train_cfg['train_batch'],
+                                  shuffle=train_cfg['shuffle'],
+                                  num_workers=train_cfg['num_workers'],
+                                  sampler=train_sampler)
+    val_batch_data = DataLoader(val_dataset,
+                                batch_size=train_cfg['val_batch'],
+                                shuffle=train_cfg['shuffle'],
+                                num_workers=0,
+                                sampler=val_sampler)
+
+    if pretrained:
+        print('process {} Load from: {}'.format(local_rank, pretrained))
+        state_dict = torch.load(pretrained, map_location=torch.device('cpu'))
+        network_model.load_state_dict(state_dict, strict=False)
+        print('process {} load finish'.format(local_rank))
+
+    train_steps = int(len(train_dataset) / train_cfg['train_batch'] / train_cfg['dist_num'])
+    # val_steps = int(len(val_dataset) / train_cfg['val_batch'] / train_cfg['dist_num'])
+    new_acc1 = 0.0
+    for e in range(train_cfg['epoch']):
+        network_model = train(network_model=network_model,
+                              dataloader=train_batch_data,
+                              loss_func=loss_func,
+                              optimizer=optimizer,
+                              lr_scheduler=lr_policy,
+                              summary_writer=summary_writer,
+                              local_rank=local_rank,
+                              train_steps=train_steps,
+                              epoch=e,
+                              dist_num=train_cfg['dist_num'])
+        acc1, acc5, val_loss = validation(network_model=network_model,
+                                          dataloader=val_batch_data,
+                                          loss_func=loss_func,
+                                          summary_writer=summary_writer,
+                                          local_rank=local_rank,
+                                          epoch=e,
+                                          dist_num=train_cfg['dist_num'])
+        if acc1 > new_acc1:
+            new_acc1 = acc1
+
+            weight_prefix = train_cfg['weight_output_prefix'] if \
+                train_cfg['weight_output_prefix'] else datetime.now().strftime('%b_%d_%H_%M')
+            weight_name = weight_prefix + "_epoch_" + str(e) + "_acc_" + str(acc1) + ".pth"
+            save_name = os.path.join(train_cfg['weight_output_dir'], weight_name)
+            torch.save(network_model.module.state_dict(), save_name)
+
+        if local_rank == 0:
+            table = PrettyTable(['epoch', 'acc1', 'acc5', 'val_loss'])
+            table.add_row([e, "%.4f" % acc1, "%.4f" % acc5, "%.4f" % val_loss])
+            print(table)
+
+
+def train(network_model: nn.Module,
+          dataloader: DataLoader,
+          loss_func: nn.Module,
+          optimizer,
+          lr_scheduler,
+          summary_writer: SummaryWriter,
+          local_rank: int,
+          train_steps: int,
+          epoch: int,
+          dist_num: int):
+    """
+
+    :param network_model: network model
+    :param dataloader: ddp dataloader
+    :param loss_func: loss function
+    :param optimizer:
+    :param lr_scheduler:
+    :param summary_writer:
+    :param local_rank: current rank
+    :param train_steps: computed equ: data-length / (batch-size * dist-num)
+    :param epoch: current epoch idx
+    :param dist_num:
+    :return:
+    """
+    network_model.train()
+    for ts, (x, y) in enumerate(dataloader):
+        x = x.to(torch.device('cuda:{}'.format(local_rank)))
+        y = y.to(torch.device('cuda:{}'.format(local_rank)))
+        output = network_model(x)
+        loss = loss_func(output, y)
+        torch.distributed.barrier()  # noqa
+        reduced_loss = reduce_mean(loss, dist_num)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        lr_scheduler.step()
+        if local_rank == 0:
+            summary_writer.add_scalar('train/loss_total',
+                                      reduced_loss.data.cpu().numpy(),
+                                      global_step=epoch * train_steps + ts)
+    return network_model
+
+
+def validation(network_model: nn.Module,
+               dataloader: DataLoader,
+               loss_func: nn.Module,
+               summary_writer: SummaryWriter,
+               local_rank: int,
+               epoch: int,
+               dist_num: int):
+    """
+
+    :param network_model: network model
+    :param dataloader: ddp dataloader
+    :param loss_func: loss function
+    :param summary_writer:
+    :param local_rank: current rank
+    :param epoch: current epoch idx
+    :param dist_num:
+    :return:
+    """
+    network_model.eval()
+    loss_avg = AverageMeter('loss', ':.4e')
+    acc1 = AverageMeter('Accuracy', ':.4e')
+    acc5 = AverageMeter('Accuracy', ':.4e')
+
+    with torch.no_grad():
+        for vs, (x, y) in enumerate(dataloader):
+            x = x.to(torch.device('cuda:{}'.format(local_rank)))
+            y = y.to(torch.device('cuda:{}'.format(local_rank)))
+            output = network_model(x)
+            loss = loss_func(output, y)
+            torch.distributed.barrier()  # noqa
+            reduced_loss = reduce_mean(loss, dist_num)
+
+            acc_top1, acc_top5 = accuracy(output, y, top_k=(1, 5))
+            acc_top1 = acc_top1.to(torch.device('cuda:{}'.format(local_rank)))
+            acc_top5 = acc_top5.to(torch.device('cuda:{}'.format(local_rank)))
+
+            reduced_acc1 = reduce_mean(acc_top1, dist_num)
+            reduced_acc5 = reduce_mean(acc_top5, dist_num)
+
+            loss_avg.update(reduced_loss.item(), x.size(0))
+            acc1.update(reduced_acc1.item(), x.size(0))
+            acc5.update(reduced_acc5.item(), x.size(0))
+
+        if local_rank == 0:
+            summary_writer.add_scalar('val/loss_total',
+                                      reduced_loss.data.cpu().numpy(),
+                                      global_step=epoch)
+            summary_writer.add_scalar('val/acc1',
+                                      acc1.avg,
+                                      global_step=epoch)
+            summary_writer.add_scalar('val/acc5',
+                                      acc5.avg,
+                                      global_step=epoch)
+
+        return acc1.avg, acc5.avg, reduced_loss.avg

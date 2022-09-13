@@ -1,0 +1,60 @@
+network_cfg:
+  network_name: "slowfast_resnet10"
+  model_param:
+    class_num: 3
+
+
+loss_cfg:
+  loss_name: ['CrossEntropyLoss']
+  loss_weights: [1]
+  loss_param:
+    class_weight: [1,1,1]
+
+
+dataset_cfg:
+  dataset_name: "VideoDataset"
+  dataset_param:
+    data_root: "/Users/BboyHanat/workspace/datasets/UCF-101"
+    clip_len: 32
+    img_w: 320                  # 视频图像的宽
+    img_h: 320                  # 视频图像的高
+    resize_keep_ratio: True     # 是否按比例缩放
+    frame_sample_rate: 16
+
+
+optimizer_cfg:
+  optimizer_name: "AdamW"
+  optimizer_param:
+    lr: 0.001
+    betas: [ 0.7, 0.999 ]
+    weight_decay: 0.0005
+    # momentum: 0.95
+
+
+lr_cfg:
+  lr_name: "CosineAnnealingLR"
+  warmup_step: 1000
+  warmup_lr: 3e-7
+  base_lr: 0.00001
+  lr_param:
+    T_max: 2
+    eta_min: 3e-6
+
+summary_cfg:
+#  summary_prefix: "slowfast_"
+  summary_path: "tensorboard/"
+
+
+train_cfg:
+  # todo: EMA train and quantization training
+  dist_num: 1                                         # 分布式训练时的计算设备节点数, 单机多卡的时候可以理解为训练使用的gpu数量
+  ip: "0.0.0.0"
+  port: "12012"
+  epoch: 500
+  pretrained: ""                                      # 网络整体的预训练模型
+  weight_output_prefix: "video_classification_exp01"
+  weight_output_dir: "weights/slowfast/"              # 训练的模型输出路径
+  train_batch: 2              # 每个gpu上的训练的 batch 数量
+  val_batch: 4                # 每个gpu上的验证的 batch 数量
+  shuffle: False
+  num_workers: 8              # 每个进程读取数据的进程数
