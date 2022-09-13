@@ -14,7 +14,7 @@ loss_cfg:
 dataset_cfg:
   dataset_name: "VideoDataset"
   dataset_param:
-    data_root: "/root/data"
+    data_root: "/root/hanat/UCF-101"
     clip_len: 32
     img_w: 320                  # 视频图像的宽
     img_h: 320                  # 视频图像的高
