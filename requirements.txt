@@ -1,0 +1,5 @@
+opencv-python==4.5.5.64
+numpy==1.18.3
+prettytable==3.4.0
+pillow==9.2.0
+pyyaml==6.0
