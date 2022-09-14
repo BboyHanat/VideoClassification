@@ -48,6 +48,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                             world_size=dist_num,
                             rank=local_rank)
 
+    # 洗菜
     # set different seed for each worker
     network_model = network_builder(config['network_cfg']['network_name'],
                                     **config['network_cfg']['model_param'])
@@ -105,7 +106,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
     train_steps = int(len(train_dataset) / train_cfg['train_batch'] / dist_num)
     # val_steps = int(len(val_dataset) / train_cfg['val_batch'] / train_cfg['dist_num'])
 
-    logger.info("start training")
+    logger.info("start training")   # 炒菜
     new_acc1 = 0.0
     for e in range(train_cfg['epoch']):
         network_model = train(network_model=network_model,
@@ -135,7 +136,12 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
             torch.save(network_model.module.state_dict(), save_name)
 
         if local_rank == 0:
+            logger.info("\n")
+            logger.info("\n")
+            logger.info("Validation Result:")
             logger.info("epoch: {}, acc1: {}, val_loss: {}".format(e, acc1, val_loss))
+            logger.info("\n")
+            logger.info("\n")
 
 
 def train(network_model: nn.Module,
