@@ -43,8 +43,8 @@ class VideoDataset(Dataset):
         self.label2index = {label: index for index, label in enumerate(sorted(set(labels)))}
         self.label_array = np.array([self.label2index[label] for label in labels], dtype=int)
 
-        self.mean = np.reshape(np.array([127, 127, 127], dtype=np.float32), newshape=(1, 1, 1, 3))
-        self.std = np.reshape(np.array([128, 128, 128], dtype=np.float32), newshape=(1, 1, 1, 3))
+        self.mean = np.reshape(np.array([0.485, 0.456, 0.406], dtype=np.float32), newshape=(1, 1, 1, 3))
+        self.std = np.reshape(np.array([0.229, 0.224, 0.225], dtype=np.float32), newshape=(1, 1, 1, 3))
 
         label_file = 'class_labels.json'
         with open(label_file, 'w') as f:
@@ -96,9 +96,10 @@ class VideoDataset(Dataset):
         capture.release()
         return buffer
 
-    def normalize(self, buffer):
-        buffer = (buffer - self.mean) / self.std
-        return buffer
+    def normalize(self, frames):
+        frames = frames / 255.0
+        frames = (frames - self.mean) / self.std
+        return frames
 
     def __len__(self):
         return len(self.file_names)

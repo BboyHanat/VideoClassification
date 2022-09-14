@@ -42,7 +42,6 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
     train_cfg = config['train_cfg']
     init_seeds(local_rank + 1, cuda_deterministic=False)
     init_method = 'tcp://' + config['dist_cfg']['ip'] + ':' + str(config['dist_cfg']['port'])
-    logger.info(local_rank)
     dist.init_process_group(backend='nccl',  # noqa
                             init_method=init_method,
                             world_size=dist_num,
@@ -174,8 +173,6 @@ def train(network_model: nn.Module,
         optimizer.step()
         lr_scheduler.step()
         if local_rank == 0:
-            table = PrettyTable(['epoch', 'loss'])
-            table.add_row([epoch, "%.4f" % reduced_loss.data.cpu().numpy()])
             logger.info("epoch: {}  step: {}  loss: {}".format(epoch, ts,
                                                                reduced_loss.data.cpu().numpy()))
             summary_writer.add_scalar('train/loss_total',
