@@ -211,14 +211,11 @@ def validation(network_model: nn.Module,
             y = y.to(torch.device('cuda:{}'.format(local_rank)))
             output = network_model(x)
             loss = loss_func(output, y)
-            torch.distributed.barrier()  # noqa
-            reduced_loss = reduce_mean(loss, dist_num)
-
             acc_top1 = accuracy(output, y)[0]
             acc_top1 = acc_top1.to(torch.device('cuda:{}'.format(local_rank)))
-
+            torch.distributed.barrier()  # noqa
+            reduced_loss = reduce_mean(loss, dist_num)
             reduced_acc1 = reduce_mean(acc_top1, dist_num)
-
             loss_avg.update(reduced_loss.item(), x.size(0))
             acc1.update(reduced_acc1.item(), x.size(0))
 
@@ -230,4 +227,4 @@ def validation(network_model: nn.Module,
                                       acc1.avg,
                                       global_step=epoch)
 
-        return acc1.avg, reduced_loss.avg
+        return acc1.avg, loss_avg.avg
