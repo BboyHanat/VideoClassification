@@ -8,7 +8,6 @@ import torch.multiprocessing as mp
 from tools.trainer import dist_trainer
 
 
-
 def init_config(cfg):
     with open(cfg, 'r') as f:
         conf = yaml.load(f.read(), Loader=yaml.Loader)
