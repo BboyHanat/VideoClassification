@@ -74,7 +74,7 @@ class VideoDataset(Dataset):
         capture = cv2.VideoCapture(file_name)
         frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
         frame_count_sample = frame_count // self.frame_sample_rate - 1
-        buffer = np.empty((frame_count_sample, self.img_h, self.img_w, 3), np.dtype('float32'))
+        buffer = np.zeros((frame_count_sample, self.img_h, self.img_w, 3), np.dtype('float32'))
 
         count = 0
         start_idx = int(frame_count * 0.05)
@@ -97,7 +97,6 @@ class VideoDataset(Dataset):
         return buffer
 
     def normalize(self, frames):
-        print(frames)
         frames = frames / 255.0
         frames = (frames - self.mean) / self.std
         return frames
