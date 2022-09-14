@@ -17,6 +17,7 @@ from module.builder import network_builder, loss_builder, lr_policy_builder, \
 
 __all__ = ['dist_trainer']
 
+
 def init_seeds(seed=0, cuda_deterministic=True):
     random.seed(seed)
     np.random.seed(seed)
@@ -114,13 +115,13 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                               train_steps=train_steps,
                               epoch=e,
                               dist_num=dist_num)
-        acc1, acc5, val_loss = validation(network_model=network_model,
-                                          dataloader=val_batch_data,
-                                          loss_func=loss_func,
-                                          summary_writer=summary_writer,
-                                          local_rank=local_rank,
-                                          epoch=e,
-                                          dist_num=dist_num)
+        acc1, val_loss = validation(network_model=network_model,
+                                    dataloader=val_batch_data,
+                                    loss_func=loss_func,
+                                    summary_writer=summary_writer,
+                                    local_rank=local_rank,
+                                    epoch=e,
+                                    dist_num=dist_num)
         if acc1 > new_acc1:
             new_acc1 = acc1
 
@@ -213,16 +214,13 @@ def validation(network_model: nn.Module,
             torch.distributed.barrier()  # noqa
             reduced_loss = reduce_mean(loss, dist_num)
 
-            acc_top1, acc_top5 = accuracy(output, y, top_k=(1, 5))
+            acc_top1 = accuracy(output, y)
             acc_top1 = acc_top1.to(torch.device('cuda:{}'.format(local_rank)))
-            acc_top5 = acc_top5.to(torch.device('cuda:{}'.format(local_rank)))
 
             reduced_acc1 = reduce_mean(acc_top1, dist_num)
-            reduced_acc5 = reduce_mean(acc_top5, dist_num)
 
             loss_avg.update(reduced_loss.item(), x.size(0))
             acc1.update(reduced_acc1.item(), x.size(0))
-            acc5.update(reduced_acc5.item(), x.size(0))
 
         if local_rank == 0:
             summary_writer.add_scalar('val/loss_total',
@@ -231,8 +229,5 @@ def validation(network_model: nn.Module,
             summary_writer.add_scalar('val/acc1',
                                       acc1.avg,
                                       global_step=epoch)
-            summary_writer.add_scalar('val/acc5',
-                                      acc5.avg,
-                                      global_step=epoch)
 
-        return acc1.avg, acc5.avg, reduced_loss.avg
+        return acc1.avg, reduced_loss.avg
