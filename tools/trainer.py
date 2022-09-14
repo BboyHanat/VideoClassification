@@ -161,7 +161,9 @@ def train(network_model: nn.Module,
     :param dist_num:
     :return:
     """
+    print("debug1111")
     network_model.train()
+    print("debug2222")
     for ts, (x, y) in enumerate(dataloader):
         x = x.to(torch.device('cuda:{}'.format(local_rank)))
         y = y.to(torch.device('cuda:{}'.format(local_rank)))
