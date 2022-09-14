@@ -75,6 +75,9 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                                   base_lr=config['lr_cfg']['base_lr'],
                                   **config['lr_cfg']['lr_param'])
 
+    #
+    os.makedirs(train_cfg['weight_output_dir'], exist_ok=True)
+
     summary_writer = summary_builder(**config['summary_cfg'])
     network_model = SyncBatchNorm.convert_sync_batchnorm(network_model).to(local_rank)
     network_model = parallel.DistributedDataParallel(network_model,
