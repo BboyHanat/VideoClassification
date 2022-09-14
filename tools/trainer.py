@@ -163,11 +163,13 @@ def train(network_model: nn.Module,
     for ts, (x, y) in enumerate(dataloader):
         x = x.to(torch.device('cuda:{}'.format(local_rank)))
         y = y.to(torch.device('cuda:{}'.format(local_rank)))
+        print("test000")
         output = network_model(x)
+        print("test111")
         loss = loss_func(output, y)
         torch.distributed.barrier()  # noqa
         reduced_loss = reduce_mean(loss, dist_num)
-
+        print("test222")
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
