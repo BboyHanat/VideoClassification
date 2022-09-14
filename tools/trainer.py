@@ -137,7 +137,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
         if local_rank == 0:
             table = PrettyTable(['epoch', 'acc1', 'val_loss'])
             table.add_row([e, "%.4f" % acc1, "%.4f" % val_loss])
-            logger.info(table)
+            logger.info('\n' + table)
 
 
 def train(network_model: nn.Module,
