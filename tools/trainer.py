@@ -214,7 +214,7 @@ def validation(network_model: nn.Module,
             torch.distributed.barrier()  # noqa
             reduced_loss = reduce_mean(loss, dist_num)
 
-            acc_top1 = accuracy(output, y)
+            acc_top1 = accuracy(output, y)[0]
             acc_top1 = acc_top1.to(torch.device('cuda:{}'.format(local_rank)))
 
             reduced_acc1 = reduce_mean(acc_top1, dist_num)
