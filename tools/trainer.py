@@ -105,6 +105,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
     print("start training")
     new_acc1 = 0.0
     for e in range(train_cfg['epoch']):
+        print("start training111111111")
         network_model = train(network_model=network_model,
                               dataloader=train_batch_data,
                               loss_func=loss_func,
