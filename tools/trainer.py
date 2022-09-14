@@ -105,7 +105,6 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
     print("start training")
     new_acc1 = 0.0
     for e in range(train_cfg['epoch']):
-        print("start training111111111")
         network_model = train(network_model=network_model,
                               dataloader=train_batch_data,
                               loss_func=loss_func,
@@ -162,19 +161,14 @@ def train(network_model: nn.Module,
     :param dist_num:
     :return:
     """
-    print("debug1111")
     network_model.train()
-    print("debug2222")
     for ts, (x, y) in enumerate(dataloader):
         x = x.to(torch.device('cuda:{}'.format(local_rank)))
         y = y.to(torch.device('cuda:{}'.format(local_rank)))
-        print("test000")
         output = network_model(x)
-        print("test111")
         loss = loss_func(output, y)
         torch.distributed.barrier()  # noqa
         reduced_loss = reduce_mean(loss, dist_num)
-        print("test222")
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
