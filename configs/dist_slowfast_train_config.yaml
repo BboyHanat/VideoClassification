@@ -44,12 +44,13 @@ summary_cfg:
 #  summary_prefix: "slowfast_"
   summary_path: "tensorboard/"
 
-
-train_cfg:
-  # todo: EMA train and quantization training
+dist_cfg:
   dist_num: 1                                         # 分布式训练时的计算设备节点数, 单机多卡的时候可以理解为训练使用的gpu数量
   ip: "0.0.0.0"
   port: "12012"
+
+train_cfg:
+  # todo: EMA train and quantization training
   epoch: 500
   pretrained: ""                                      # 网络整体的预训练模型
   weight_output_prefix: "video_classification_exp01"

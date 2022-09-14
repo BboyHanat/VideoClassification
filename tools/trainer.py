@@ -1,5 +1,4 @@
 import os
-import cv2
 import torch
 import random
 import numpy as np
@@ -12,6 +11,8 @@ from torch.utils.data import DataLoader
 from torch.nn import SyncBatchNorm, parallel
 from torch.utils.tensorboard import SummaryWriter
 from utils.dist_util import reduce_mean, accuracy, AverageMeter
+from module.builder import network_builder, loss_builder, lr_policy_builder, \
+    dataset_builder, summary_builder, optimizer_builder
 
 __all__ = ['dist_trainer']
 
@@ -30,30 +31,51 @@ def init_seeds(seed=0, cuda_deterministic=True):
         cudnn.benchmark = True
 
 
-def dist_trainer(local_rank, train_cfg: dict):
+def dist_trainer(local_rank, dist_num: int, config: dict):
     """
 
     :param local_rank:
-    :param train_cfg: distribute training parameters
+    :param dist_num:
+    :param config: distribute training parameters
     :return: 
     """
-    network_model = train_cfg['network_model']
-    train_dataset = train_cfg['train_dataset']
-    val_dataset = train_cfg['val_dataset']
-    loss_func = train_cfg['loss_func']
-    optimizer = train_cfg['optimizer']
-    lr_policy = train_cfg['lr_policy']
-    summary_writer = train_cfg['summary_writer']
-    pretrained = train_cfg['pretrained']
-
-    # set different seed for each worker
+    train_cfg = config['train_cfg']
     init_seeds(local_rank + 1, cuda_deterministic=False)
-    init_method = 'tcp://' + train_cfg['ip'] + ':' + str(train_cfg['port'])
+    init_method = 'tcp://' + config['train_cfg']['ip'] + ':' + str(config['train_cfg']['port'])
+
     dist.init_process_group(backend='nccl',  # noqa
                             init_method=init_method,
-                            world_size=train_cfg['dist_num'],
+                            world_size=dist_num,
                             rank=local_rank)
 
+    # set different seed for each worker
+    network_model = network_builder(config['network_cfg']['network_name'],
+                                    **config['network_cfg']['model_param'])
+
+    train_dataset = dataset_builder(config['dataset_cfg']['dataset_name'],
+                                    mode='train',
+                                    **config['dataset_cfg']['dataset_param'])
+
+    val_dataset = dataset_builder(config['dataset_cfg']['dataset_name'],
+                                  mode='val',
+                                  **config['dataset_cfg']['dataset_param'])
+
+    loss_func = loss_builder(config['loss_cfg']['loss_name'],
+                             config['loss_cfg']['loss_weights'],
+                             **config['loss_cfg']['loss_param'])
+
+    optimizer = optimizer_builder(config['optimizer_cfg']['optimizer_name'],
+                                  network_model.parameters(),
+                                  **config['optimizer_cfg']['optimizer_param'])
+
+    lr_policy = lr_policy_builder(config['lr_cfg']['lr_name'],
+                                  optim=optimizer,
+                                  warmup_step=config['lr_cfg']['warmup_step'],
+                                  warmup_lr=config['lr_cfg']['warmup_lr'],
+                                  base_lr=config['lr_cfg']['base_lr'],
+                                  **config['lr_cfg']['lr_param'])
+
+    summary_writer = summary_builder(**config['summary_cfg'])
     network_model = SyncBatchNorm.convert_sync_batchnorm(network_model).to(local_rank)
     network_model = parallel.DistributedDataParallel(network_model,
                                                      device_ids=[local_rank])
@@ -71,9 +93,9 @@ def dist_trainer(local_rank, train_cfg: dict):
                                 num_workers=0,
                                 sampler=val_sampler)
 
-    if pretrained:
-        print('process {} Load from: {}'.format(local_rank, pretrained))
-        state_dict = torch.load(pretrained, map_location=torch.device('cpu'))
+    if train_cfg['pretrained']:
+        print('process {} Load from: {}'.format(local_rank, train_cfg['pretrained']))
+        state_dict = torch.load(train_cfg['pretrained'], map_location=torch.device('cpu'))
         network_model.load_state_dict(state_dict, strict=False)
         print('process {} load finish'.format(local_rank))
 
