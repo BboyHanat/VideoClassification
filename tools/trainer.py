@@ -3,6 +3,7 @@ import torch
 import random
 import numpy as np
 from torch import nn
+from logger import logger
 from datetime import datetime
 import torch.distributed as dist
 from prettytable import PrettyTable
@@ -15,7 +16,6 @@ from module.builder import network_builder, loss_builder, lr_policy_builder, \
     dataset_builder, summary_builder, optimizer_builder
 
 __all__ = ['dist_trainer']
-
 
 def init_seeds(seed=0, cuda_deterministic=True):
     random.seed(seed)
@@ -42,7 +42,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
     train_cfg = config['train_cfg']
     init_seeds(local_rank + 1, cuda_deterministic=False)
     init_method = 'tcp://' + config['dist_cfg']['ip'] + ':' + str(config['dist_cfg']['port'])
-    print(local_rank)
+    logger.info(local_rank)
     dist.init_process_group(backend='nccl',  # noqa
                             init_method=init_method,
                             world_size=dist_num,
@@ -94,15 +94,15 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                                 sampler=val_sampler)
 
     if train_cfg['pretrained']:
-        print('process {} Load from: {}'.format(local_rank, train_cfg['pretrained']))
+        logger.info('process {} Load from: {}'.format(local_rank, train_cfg['pretrained']))
         state_dict = torch.load(train_cfg['pretrained'], map_location=torch.device('cpu'))
         network_model.load_state_dict(state_dict, strict=False)
-        print('process {} load finish'.format(local_rank))
+        logger.info('process {} load finish'.format(local_rank))
 
     train_steps = int(len(train_dataset) / train_cfg['train_batch'] / dist_num)
     # val_steps = int(len(val_dataset) / train_cfg['val_batch'] / train_cfg['dist_num'])
 
-    print("start training")
+    logger.info("start training")
     new_acc1 = 0.0
     for e in range(train_cfg['epoch']):
         network_model = train(network_model=network_model,
@@ -134,7 +134,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
         if local_rank == 0:
             table = PrettyTable(['epoch', 'acc1', 'acc5', 'val_loss'])
             table.add_row([e, "%.4f" % acc1, "%.4f" % acc5, "%.4f" % val_loss])
-            print(table)
+            logger.info(table)
 
 
 def train(network_model: nn.Module,
@@ -176,7 +176,8 @@ def train(network_model: nn.Module,
         if local_rank == 0:
             table = PrettyTable(['epoch', 'loss'])
             table.add_row([epoch, "%.4f" % reduced_loss.data.cpu().numpy()])
-            print(table)
+            logger.info("epoch: {}  step: {}  loss: {}".format(epoch, ts,
+                                                               reduced_loss.data.cpu().numpy()))
             summary_writer.add_scalar('train/loss_total',
                                       reduced_loss.data.cpu().numpy(),
                                       global_step=epoch * train_steps + ts)
