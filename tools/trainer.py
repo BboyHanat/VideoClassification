@@ -112,14 +112,14 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                               local_rank=local_rank,
                               train_steps=train_steps,
                               epoch=e,
-                              dist_num=train_cfg['dist_num'])
+                              dist_num=dist_num)
         acc1, acc5, val_loss = validation(network_model=network_model,
                                           dataloader=val_batch_data,
                                           loss_func=loss_func,
                                           summary_writer=summary_writer,
                                           local_rank=local_rank,
                                           epoch=e,
-                                          dist_num=train_cfg['dist_num'])
+                                          dist_num=dist_num)
         if acc1 > new_acc1:
             new_acc1 = acc1
 
