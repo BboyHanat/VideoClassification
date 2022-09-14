@@ -33,7 +33,7 @@ optimizer_cfg:
 
 lr_cfg:
   lr_name: "CosineAnnealingLR"
-  warmup_step: 1000
+  warmup_step: 0
   warmup_lr: 0.0000003
   base_lr: 0.00001
   lr_param:
