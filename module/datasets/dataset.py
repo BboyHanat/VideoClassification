@@ -5,12 +5,12 @@ import torch
 import numpy as np
 from pathlib import PurePosixPath
 from torch.utils.data import DataLoader
-
-from module.datasets import BaseDataset
+from torch.utils.data import Dataset
+# from module.datasets import BaseDataset
 from utils.resize_utils import ResizePadOpenCV, Resize
 
 
-class VideoDataset(BaseDataset):
+class VideoDataset(Dataset):
 
     def __init__(self,
                  data_root,
@@ -87,7 +87,7 @@ class VideoDataset(BaseDataset):
             if count < start_idx:           # remove useless part
                 count += 1
                 continue
-            if count % self.frame_sample_rate == remainder :
+            if count % self.frame_sample_rate == remainder:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = self.resize(frame)
                 buffer[sample_count] = frame

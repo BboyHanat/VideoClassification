@@ -19,7 +19,7 @@ dataset_cfg:
     img_w: 320                  # 视频图像的宽
     img_h: 320                  # 视频图像的高
     resize_keep_ratio: True     # 是否按比例缩放
-    frame_sample_rate: 16
+    frame_sample_rate: 4
 
 
 optimizer_cfg:
