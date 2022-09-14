@@ -97,6 +97,7 @@ class VideoDataset(Dataset):
         return buffer
 
     def normalize(self, frames):
+        print(frames)
         frames = frames / 255.0
         frames = (frames - self.mean) / self.std
         return frames
