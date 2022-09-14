@@ -42,7 +42,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
     train_cfg = config['train_cfg']
     init_seeds(local_rank + 1, cuda_deterministic=False)
     init_method = 'tcp://' + config['dist_cfg']['ip'] + ':' + str(config['dist_cfg']['port'])
-
+    print(local_rank)
     dist.init_process_group(backend='nccl',  # noqa
                             init_method=init_method,
                             world_size=dist_num,
@@ -101,6 +101,8 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
 
     train_steps = int(len(train_dataset) / train_cfg['train_batch'] / dist_num)
     # val_steps = int(len(val_dataset) / train_cfg['val_batch'] / train_cfg['dist_num'])
+
+    print("start training")
     new_acc1 = 0.0
     for e in range(train_cfg['epoch']):
         network_model = train(network_model=network_model,
