@@ -99,7 +99,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
         network_model.load_state_dict(state_dict, strict=False)
         print('process {} load finish'.format(local_rank))
 
-    train_steps = int(len(train_dataset) / train_cfg['train_batch'] / train_cfg['dist_num'])
+    train_steps = int(len(train_dataset) / train_cfg['train_batch'] / dist_num)
     # val_steps = int(len(val_dataset) / train_cfg['val_batch'] / train_cfg['dist_num'])
     new_acc1 = 0.0
     for e in range(train_cfg['epoch']):
