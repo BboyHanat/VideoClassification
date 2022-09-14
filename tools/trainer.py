@@ -173,6 +173,9 @@ def train(network_model: nn.Module,
         optimizer.step()
         lr_scheduler.step()
         if local_rank == 0:
+            table = PrettyTable(['epoch', 'loss'])
+            table.add_row([epoch, "%.4f" % reduced_loss.data.cpu().numpy()])
+            print(table)
             summary_writer.add_scalar('train/loss_total',
                                       reduced_loss.data.cpu().numpy(),
                                       global_step=epoch * train_steps + ts)
