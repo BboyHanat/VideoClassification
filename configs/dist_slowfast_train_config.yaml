@@ -55,7 +55,7 @@ train_cfg:
   pretrained: ""                                      # 网络整体的预训练模型
   weight_output_prefix: "video_classification_exp01"
   weight_output_dir: "./weights/slowfast/"              # 训练的模型输出路径
-  train_batch: 1              # 每个gpu上的训练的 batch 数量
+  train_batch: 2              # 每个gpu上的训练的 batch 数量
   val_batch: 2                # 每个gpu上的验证的 batch 数量
   shuffle: False
   num_workers: 1              # 每个进程读取数据的进程数
