@@ -175,24 +175,45 @@ class SlowFast(nn.Module):
 
 
 def slowfast_resnet10(**kwargs):
-    """Constructs a ResNet-50 model.
+    """Constructs a ResNet-10 model.
     """
     network = SlowFast(BasicBlock, [1, 1, 1, 1], **kwargs)
     return network
 
 
 def slowfast_resnet18(**kwargs):
-    """Constructs a ResNet-101 model.
+    """Constructs a ResNet-18 model.
     """
     network = SlowFast(BasicBlock, [2, 2, 2, 2], **kwargs)
     return network
 
 
 def slowfast_resnet34(**kwargs):
-    """Constructs a ResNet-101 model.
+    """Constructs a ResNet-34 model.
     """
     network = SlowFast(BasicBlock, [3, 4, 6, 3], **kwargs)
     return network
+
+
+def slowfast_resnet50(**kwargs):
+    """Constructs a ResNet-50 model.
+    """
+    model = SlowFast(BasicBlock, [3, 4, 6, 3], **kwargs)
+    return model
+
+
+def slowfast_resnet101(**kwargs):
+    """Constructs a ResNet-101 model.
+    """
+    model = SlowFast(BasicBlock, [3, 4, 23, 3], **kwargs)
+    return model
+
+
+def slowfast_resnet152(**kwargs):
+    """Constructs a ResNet-101 model.
+    """
+    model = SlowFast(BasicBlock, [3, 8, 36, 3], **kwargs)
+    return model
 
 
 def time_sync(device):

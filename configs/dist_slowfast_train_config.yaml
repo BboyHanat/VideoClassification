@@ -16,8 +16,8 @@ dataset_cfg:
   dataset_param:
     data_root: "/root/hanat/UCF-101"
     clip_len: 32
-    img_w: 224                  # 视频图像的宽
-    img_h: 224                  # 视频图像的高
+    img_w: 320                  # 视频图像的宽
+    img_h: 320                  # 视频图像的高
     resize_keep_ratio: True     # 是否按比例缩放
     frame_sample_rate: 4
 

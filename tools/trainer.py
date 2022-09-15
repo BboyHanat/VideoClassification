@@ -128,9 +128,9 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                                     dist_num=dist_num)
         if acc1 > new_acc1:
             new_acc1 = acc1
-
             weight_prefix = train_cfg['weight_output_prefix'] if \
                 train_cfg['weight_output_prefix'] else datetime.now().strftime('%b_%d_%H_%M')
+
             weight_name = weight_prefix + "_epoch_" + str(e) + "_acc_" + str(acc1) + ".pth"
             save_name = os.path.join(train_cfg['weight_output_dir'], weight_name)
             torch.save(network_model.module.state_dict(), save_name)
@@ -170,13 +170,14 @@ def train(network_model: nn.Module,
     """
     network_model.train()
     for ts, (x, y) in enumerate(dataloader):
+        print(x.size(), y.size())
         x = x.to(torch.device('cuda:{}'.format(local_rank)))
         y = y.to(torch.device('cuda:{}'.format(local_rank)))
         output = network_model(x)
+        optimizer.zero_grad()
         loss = loss_func(output, y)
         torch.distributed.barrier()  # noqa
         reduced_loss = reduce_mean(loss, dist_num)
-        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         lr_scheduler.step()
