@@ -58,4 +58,4 @@ train_cfg:
   train_batch: 32              # 每个gpu上的训练的 batch 数量
   val_batch: 32                # 每个gpu上的验证的 batch 数量
   shuffle: False
-  num_workers: 2              # 每个进程读取数据的进程数
+  num_workers: 8              # 每个进程读取数据的进程数
