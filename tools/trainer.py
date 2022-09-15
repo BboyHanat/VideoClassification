@@ -61,6 +61,10 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                                   mode='val',
                                   **config['dataset_cfg']['dataset_param'])
 
+    train_steps = int(len(train_dataset) / train_cfg['train_batch'] / dist_num)
+    if config['lr_cfg']['lr_param'].get('T_max'):
+        config['lr_cfg']['lr_param']['T_max'] = train_steps
+
     loss_func = loss_builder(config['loss_cfg']['loss_name'],
                              config['loss_cfg']['loss_weights'],
                              **config['loss_cfg']['loss_param'])
@@ -102,9 +106,6 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
         state_dict = torch.load(train_cfg['pretrained'], map_location=torch.device('cpu'))
         network_model.load_state_dict(state_dict, strict=False)
         logger.info('process {} load finish'.format(local_rank))
-
-    train_steps = int(len(train_dataset) / train_cfg['train_batch'] / dist_num)
-    # val_steps = int(len(val_dataset) / train_cfg['val_batch'] / train_cfg['dist_num'])
 
     logger.info("start training")   # 炒菜
     new_acc1 = 0.0
