@@ -18,16 +18,16 @@ dataset_cfg:
     clip_len: 32
     img_w: 320                  # 视频图像的宽
     img_h: 320                  # 视频图像的高
-    resize_keep_ratio: True     # 是否按比例缩放
+    resize_keep_ratio: False     # 是否按比例缩放
     frame_sample_rate: 4
 
 
 optimizer_cfg:
   optimizer_name: "AdamW"
   optimizer_param:
-    lr: 0.001
-    betas: [ 0.7, 0.999 ]
-    weight_decay: 0.0005
+    lr: 0.0001
+    betas: [ 0.9, 0.999 ]
+    weight_decay: 0.00000005
     # momentum: 0.95
 
 
