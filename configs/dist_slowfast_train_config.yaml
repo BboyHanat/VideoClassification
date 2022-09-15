@@ -1,5 +1,5 @@
 network_cfg:
-  network_name: "slowfast_resnet10"
+  network_name: "slowfast_resnet34"
   model_param:
     class_num: 3
 
