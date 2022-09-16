@@ -174,7 +174,7 @@ def train(network_model: nn.Module,
         x = x.to(torch.device('cuda:{}'.format(local_rank)))
         y = y.to(torch.device('cuda:{}'.format(local_rank)))
         output = network_model(x)
-        output = torch.softmax(output, dim=1)
+        # output = torch.softmax(output, dim=1)
         optimizer.zero_grad()
         loss = loss_func(output, y)
         torch.distributed.barrier()  # noqa
