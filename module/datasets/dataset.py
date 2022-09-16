@@ -61,6 +61,7 @@ class VideoDataset(Dataset):
         frames = self.crop(frames, self.clip_len)
         frames = self.normalize(frames)
         frames = self.to_tensor(frames)
+        frames = torch.tensor(frames, dtype=torch.float32)
         labels = torch.tensor(self.label_array[index])
 
         return frames, labels
