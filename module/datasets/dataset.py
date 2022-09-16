@@ -82,14 +82,13 @@ class VideoDataset(Dataset):
         count = 0
         start_idx = np.random.randint(frame_count - self.frame_sample_rate * self.clip_len) if \
             frame_count > self.frame_sample_rate * self.clip_len else 0
-        # start_idx = int(frame_count * 0.05)
         sample_count = 0
         # read in each frame, one at a time into the numpy buffer array
         while count < frame_count:
             ret, frame = capture.read()
-            if ret or sample_count >= frame_count_sample:
+            if not ret or sample_count >= frame_count_sample:
                 break
-            if count < start_idx:           # remove useless part
+            if count < start_idx:
                 count += 1
                 continue
             if count % self.frame_sample_rate == remainder:
