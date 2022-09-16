@@ -233,7 +233,8 @@ def slowfast_test():
     model.eval()
     start = time_sync(device)
     for i in range(100):
-        output = model(input_tensor)
+        with torch.no_grad():
+            output = model(input_tensor)
         print(output.size())
     end = time_sync(device)
     print((end - start) / 100)

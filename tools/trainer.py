@@ -175,13 +175,15 @@ def train(network_model: nn.Module,
         x = x.to(torch.device('cuda:{}'.format(local_rank)))
         y = y.to(torch.device('cuda:{}'.format(local_rank)))
         output = network_model(x)
+        print(output.size())
         optimizer.zero_grad()
         loss = loss_func(output, y)
         torch.distributed.barrier()  # noqa
-        reduced_loss = reduce_mean(loss, dist_num)
         loss.backward()
         optimizer.step()
         lr_scheduler.step()
+        reduced_loss = reduce_mean(loss, dist_num)
+
         if local_rank == 0:
             logger.info("epoch: {}  step: {}  loss: {}".format(epoch, ts,
                                                                reduced_loss.data.cpu().numpy()))
