@@ -25,7 +25,7 @@ dataset_cfg:
 optimizer_cfg:
   optimizer_name: "AdamW"
   optimizer_param:
-    lr: 0.0001
+    lr: 0.001
     betas: [ 0.9, 0.999 ]
     weight_decay: 0.00000005
     # momentum: 0.95
@@ -35,7 +35,7 @@ lr_cfg:
   lr_name: "CosineAnnealingLR"
   warmup_step: 0
   warmup_lr: 0.0000003
-  base_lr: 0.0001
+  base_lr: 0.001
   lr_param:
     T_max: 2
     eta_min: 0.0000003
