@@ -54,7 +54,7 @@ class VideoDataset(Dataset):
         # loading and preprocessing. TODO move them to transform classes
         frames = self.load_video(self.file_names[index])
         while frames.shape[0] < self.clip_len + 2:
-            print("debug: check data")
+            print("debug: check data {}".format(frames.shape[0]))
             index = np.random.randint(self.__len__())
             frames = self.load_video(self.file_names[index])
 
