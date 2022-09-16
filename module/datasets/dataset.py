@@ -54,7 +54,6 @@ class VideoDataset(Dataset):
         # loading and preprocessing. TODO move them to transform classes
         frames = self.load_video(self.file_names[index])
         while frames.shape[0] < self.clip_len + 2:
-            print("debug: check data {}".format(frames.shape[0]))
             index = np.random.randint(self.__len__())
             frames = self.load_video(self.file_names[index])
 
@@ -75,7 +74,6 @@ class VideoDataset(Dataset):
         remainder = np.random.randint(self.frame_sample_rate)
         capture = cv2.VideoCapture(file_name)
         frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-        print("frame_count: {}".format(frame_count))
         frame_count_sample = frame_count // self.frame_sample_rate - 1
         buffer = np.zeros((frame_count_sample, self.img_h, self.img_w, 3), np.dtype('float32'))
 
@@ -94,7 +92,7 @@ class VideoDataset(Dataset):
             if count % self.frame_sample_rate == remainder:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = self.resize(frame)
-                buffer[sample_count] = frame
+                buffer[sample_count, :, :, :] = frame
                 sample_count += 1
             count += 1
         capture.release()

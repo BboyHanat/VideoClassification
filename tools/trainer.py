@@ -171,12 +171,10 @@ def train(network_model: nn.Module,
     """
     network_model.train()
     for ts, (x, y) in enumerate(dataloader):
-        print(x.size(), y.size())
         x = x.to(torch.device('cuda:{}'.format(local_rank)))
         y = y.to(torch.device('cuda:{}'.format(local_rank)))
         output = network_model(x)
         output = torch.softmax(output, dim=1)
-        print(output.size())
         optimizer.zero_grad()
         loss = loss_func(output, y)
         torch.distributed.barrier()  # noqa
