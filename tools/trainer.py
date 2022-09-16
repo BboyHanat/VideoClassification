@@ -184,8 +184,8 @@ def train(network_model: nn.Module,
         reduced_loss = reduce_mean(loss, dist_num)
 
         if local_rank == 0:
-            logger.info("epoch: {}  step: {}  loss: {}".format(epoch, ts,
-                                                               reduced_loss.data.cpu().numpy()))
+            logger.info("epoch: {}  step: {}/{}  loss: {}".format(epoch, ts, train_steps,
+                                                                  reduced_loss.data.cpu().numpy()))
             summary_writer.add_scalar('train/loss_total',
                                       reduced_loss.data.cpu().numpy(),
                                       global_step=epoch * train_steps + ts)
