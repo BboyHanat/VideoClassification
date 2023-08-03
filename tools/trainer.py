@@ -40,6 +40,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
     :param config: distribute training parameters
     :return: 
     """
+
     train_cfg = config['train_cfg']
     init_seeds(local_rank + 1, cuda_deterministic=False)
     init_method = 'tcp://' + config['dist_cfg']['ip'] + ':' + str(config['dist_cfg']['port'])
@@ -48,7 +49,7 @@ def dist_trainer(local_rank, dist_num: int, config: dict):
                             world_size=dist_num,
                             rank=local_rank)
 
-    # 洗菜
+    torch.cuda.set_device(local_rank)   # this need to be called before building network model, without this maybe lead to imbalance memory cost issue
     # set different seed for each worker
     network_model = network_builder(config['network_cfg']['network_name'],
                                     **config['network_cfg']['model_param'])
